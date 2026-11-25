@@ -1,25 +1,48 @@
 {
   "expo": {
-    "name": "jarvis-mobile",
+    "name": "Jarvis",
     "slug": "jarvis-mobile",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "ios": {
-      "supportsTablet": true
+    "scheme": "jarvis",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#eceae6",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#eceae6"
     },
     "android": {
+      "package": "dev.jarvis.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F7F6F3",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Jarvis uses the camera only to scan the pairing code shown on your computer.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26,
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      "expo-font",
+      "./modules/jarvis-bridge/app.plugin.js"
+    ]
   }
 }

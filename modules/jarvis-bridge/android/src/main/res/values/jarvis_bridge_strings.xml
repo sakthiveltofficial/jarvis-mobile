@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="jarvis_bridge_a11y_label">Jarvis phone control</string>
+  <string name="jarvis_bridge_a11y_description">Lets Jarvis, your assistant on your own computer, read what is on this screen and tap, swipe and type for you when you ask it to. Nothing is sent anywhere except to the computer you paired.</string>
+  <string name="jarvis_bridge_notif_label">Jarvis notifications</string>
+</resources>

@@ -1,0 +1,106 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v0.1.1). Leave empty to just build."
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      TAG: ${{ github.event.inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Set version
+        run: |
+          VERSION="${TAG#v}"
+          [ -z "$VERSION" ] && VERSION="$(node -p "require('./app.json').expo.version")"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          node -e "
+            const fs=require('fs');const a=JSON.parse(fs.readFileSync('app.json'));
+            a.expo.version=process.env.VERSION; a.expo.android.versionCode=Number(process.env.GITHUB_RUN_NUMBER);
+            fs.writeFileSync('app.json', JSON.stringify(a,null,2));"
+
+      - name: Generate the native project
+        run: npx expo prebuild -p android --no-install
+
+      - name: Release signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            {
+              echo "JARVIS_KEYSTORE=$RUNNER_TEMP/release.jks"
+              echo "JARVIS_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+              echo "JARVIS_KEY_ALIAS=${KEY_ALIAS:-jarvis}"
+              echo "JARVIS_KEY_PASSWORD=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+            } >> "$GITHUB_ENV"
+            echo "Signing with the release key."
+          else
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: signing with the debug key (fine for testing; set the secret for stable updates)."
+          fi
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a,x86_64
+
+      - name: Collect APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release.apk "dist/Jarvis-${VERSION}.apk"
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-${{ env.VERSION }}-apk
+          path: dist/*.apk
+
+      - name: Publish GitHub release
+        if: env.TAG != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: Jarvis for Android ${{ env.TAG }}
+          files: dist/*.apk
+          generate_release_notes: true
+          body: |
+            Sideload: download `Jarvis-${{ env.VERSION }}.apk` on your phone, open it and allow "Install unknown apps" when Android asks.
+            Then pair it from desktop Jarvis: ⚙ → Connections → My phone → Pair a phone.
