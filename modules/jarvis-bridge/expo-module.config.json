@@ -1,6 +1,6 @@
 {
   "platforms": ["android"],
   "android": {
-    "modules": ["dev.jarvis.bridge.JarvisBridgeModule"]
+    "modules": ["dev.jarvis.bridge.JarvisBridgeModule", "dev.jarvis.bridge.ar.ArModule"]
   }
 }

@@ -17,6 +17,7 @@ export type Capabilities = {
   notifications: boolean;
   postNotifications: boolean;
   microphone: boolean;
+  camera: boolean;
   sms: boolean;
   calls: boolean;
   contacts: boolean;
@@ -53,5 +54,5 @@ export type JarvisBridgeModuleEvents = {
   onLevel: (l: { value: number }) => void;
 };
 
-export type PermissionGroup = 'microphone' | 'sms' | 'calls' | 'contacts' | 'location' | 'postNotifications' | 'files';
+export type PermissionGroup = 'microphone' | 'camera' | 'sms' | 'calls' | 'contacts' | 'location' | 'postNotifications' | 'files';
 export type SettingsPage = 'accessibility' | 'notifications' | 'files' | 'overlay' | 'battery' | 'shizuku' | 'app';

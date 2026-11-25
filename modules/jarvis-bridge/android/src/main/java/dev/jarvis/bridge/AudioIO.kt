@@ -20,6 +20,8 @@ object VoiceRecorder {
   @Volatile private var rec: AudioRecord? = null
   @Volatile private var thread: Thread? = null
   private val buf = ByteArrayOutputStream()
+  /** Live mic level 0..1 (the AR orb leans in while you talk). */
+  @Volatile var level = 0f
 
   val recording get() = rec != null
 
@@ -48,7 +50,9 @@ object VoiceRecorder {
         while (bb.remaining() >= 2) {
           val s = bb.short / 32768.0; sum += s * s; cnt++
         }
-        Bus.level(if (cnt > 0) minOf(1.0, sqrt(sum / cnt) * 6) else 0.0)
+        val lv = if (cnt > 0) minOf(1.0, sqrt(sum / cnt) * 6) else 0.0
+        level = lv.toFloat()
+        Bus.level(lv)
       }
     }.apply { name = "jarvis-mic"; start() }
   }
@@ -63,6 +67,7 @@ object VoiceRecorder {
     }
     thread?.join(500)
     r.release()
+    level = 0f
     Bus.level(0.0)
     val pcm = synchronized(buf) { buf.toByteArray() }
     if (pcm.size < SR / 2) return null // < 0.25 s
@@ -81,20 +86,73 @@ object VoiceRecorder {
 /** Plays Jarvis's spoken replies (WAV from the desktop's TTS) one after another. */
 object AudioOut {
   private val queue = ConcurrentLinkedQueue<File>()
+  private val envelopes = java.util.concurrent.ConcurrentHashMap<String, FloatArray>()
   @Volatile private var player: MediaPlayer? = null
+  @Volatile private var playingEnv: FloatArray? = null
+  @Volatile private var startedAt = 0L
   private var n = 0
+  private const val ENV_MS = 40
 
   @Synchronized
   fun enqueue(ctx: Context, wavB64: String) {
     val f = File(ctx.cacheDir, "jarvis-tts-${n++ % 16}.wav")
-    f.writeBytes(Crypto.unb64(wavB64))
+    val bytes = Crypto.unb64(wavB64)
+    f.writeBytes(bytes)
+    envelopes[f.name] = envelope(bytes)
     queue.add(f)
     if (player == null) next()
   }
 
+  /** How loud Jarvis's voice is right now, 0..1 (drives the AR orb's ripples). */
+  fun level(): Float {
+    val env = playingEnv ?: return 0f
+    val i = ((android.os.SystemClock.elapsedRealtime() - startedAt) / ENV_MS).toInt()
+    return if (i in env.indices) env[i] else 0f
+  }
+
+  /** RMS per 40 ms of a PCM16 WAV; a flat 0.35 when the format is unexpected. */
+  private fun envelope(wav: ByteArray): FloatArray {
+    try {
+      val bb = ByteBuffer.wrap(wav).order(ByteOrder.LITTLE_ENDIAN)
+      var pos = 12
+      var sr = 22050
+      var ch = 1
+      var bits = 16
+      while (pos + 8 <= wav.size) {
+        val id = String(wav, pos, 4)
+        val len = bb.getInt(pos + 4)
+        if (id == "fmt ") {
+          ch = bb.getShort(pos + 10).toInt(); sr = bb.getInt(pos + 12); bits = bb.getShort(pos + 22).toInt()
+        } else if (id == "data") {
+          if (bits != 16) break
+          val start = pos + 8
+          val end = minOf(wav.size, start + len)
+          val per = maxOf(1, sr * ch * ENV_MS / 1000)
+          val frames = (end - start) / 2 / per
+          val out = FloatArray(frames)
+          var peak = 1e-4f
+          for (f in 0 until frames) {
+            var sum = 0.0
+            for (k in 0 until per) {
+              val s = bb.getShort(start + (f * per + k) * 2) / 32768.0
+              sum += s * s
+            }
+            out[f] = sqrt(sum / per).toFloat()
+            if (out[f] > peak) peak = out[f]
+          }
+          for (f in out.indices) out[f] = minOf(1f, out[f] / peak)
+          return out
+        }
+        pos += 8 + len + (len and 1)
+      }
+    } catch (_: Exception) {
+    }
+    return FloatArray(1500) { 0.35f }
+  }
+
   @Synchronized
   private fun next() {
-    val f = queue.poll() ?: run { player = null; Bus.desktopEvent(org.json.JSONObject().put("type", "phone_audio").put("playing", false)); return }
+    val f = queue.poll() ?: run { player = null; playingEnv = null; Bus.desktopEvent(org.json.JSONObject().put("type", "phone_audio").put("playing", false)); return }
     val mp = MediaPlayer()
     player = mp
     try {
@@ -105,6 +163,8 @@ object AudioOut {
       mp.setOnErrorListener { p, _, _ -> p.release(); next(); true }
       mp.prepare()
       mp.start()
+      playingEnv = envelopes.remove(f.name)
+      startedAt = android.os.SystemClock.elapsedRealtime()
       Bus.desktopEvent(org.json.JSONObject().put("type", "phone_audio").put("playing", true))
     } catch (e: Exception) {
       mp.release()
@@ -122,6 +182,10 @@ object AudioOut {
       }
       it.release()
     }
+    val was = player != null
     player = null
+    playingEnv = null
+    envelopes.clear()
+    if (was) Bus.desktopEvent(org.json.JSONObject().put("type", "phone_audio").put("playing", false))
   }
 }

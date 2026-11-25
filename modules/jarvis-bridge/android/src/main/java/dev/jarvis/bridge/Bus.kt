@@ -29,6 +29,7 @@ object Bus {
   }
 
   fun desktopEvent(ev: JSONObject) {
+    dev.jarvis.bridge.ar.OrbState.onEvent(ev)
     if (ev.optString("type") in KEEP) synchronized(history) {
       history.addLast(ev)
       while (history.size > 300) history.removeFirst()

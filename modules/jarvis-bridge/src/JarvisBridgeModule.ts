@@ -24,6 +24,10 @@ declare class JarvisBridgeModule extends NativeModule<JarvisBridgeModuleEvents> 
   stopSpeaking(): boolean;
   startRecording(): boolean;
   stopRecording(send: boolean): boolean;
+  /** Stop push-to-talk and keep the audio for an AR request ({ wavRef: true }). */
+  stopRecordingKeep(): boolean;
+  /** Phone -> PC request (AR features). Resolves with the JSON reply as a string. */
+  request(op: string, argsJson: string, timeoutMs: number): Promise<string>;
   requestPermissions(group: PermissionGroup): Promise<Capabilities>;
   openSettings(page: SettingsPage): void;
   requestShizuku(): 'not_running' | 'granted' | 'asked' | 'error';

@@ -6,6 +6,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import Bridge from './modules/jarvis-bridge';
 import { Icon } from './src/components/Icon';
 import { Dot, IconButton, T } from './src/components/ui';
+import { ArScreen } from './src/screens/ArScreen';
 import { PairScreen } from './src/screens/PairScreen';
 import { PhoneScreen } from './src/screens/PhoneScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
@@ -13,7 +14,7 @@ import { TalkScreen } from './src/screens/TalkScreen';
 import { refresh, startStore, useStore } from './src/store';
 import { dark, light, ThemeContext, useTheme } from './src/theme';
 
-type Tab = 'talk' | 'phone' | 'settings';
+type Tab = 'talk' | 'ar' | 'phone' | 'settings';
 
 function readMode(): 'system' | 'light' | 'dark' {
   try {
@@ -78,12 +79,12 @@ function Shell() {
       </View>
 
       <View style={{ flex: 1 }}>
-        {!paired ? <PairScreen reason={snap.status.reason} /> : tab === 'talk' ? <TalkScreen /> : tab === 'phone' ? <PhoneScreen /> : <SettingsScreen />}
+        {!paired ? <PairScreen reason={snap.status.reason} /> : tab === 'talk' ? <TalkScreen /> : tab === 'ar' ? <ArScreen /> : tab === 'phone' ? <PhoneScreen /> : <SettingsScreen />}
       </View>
 
       {paired ? (
         <View style={{ flexDirection: 'row', marginHorizontal: 12, marginBottom: 8, marginTop: 2, backgroundColor: t.surface, borderRadius: 20, borderWidth: 1, borderColor: t.line, padding: 4 }}>
-          {([['talk', 'chat', 'Talk'], ['phone', 'phone', 'Phone'], ['settings', 'gear', 'Settings']] as const).map(([k, icon, label]) => {
+          {([['talk', 'chat', 'Talk'], ['ar', 'ar', 'AR'], ['phone', 'phone', 'Phone'], ['settings', 'gear', 'Settings']] as const).map(([k, icon, label]) => {
             const on = tab === k;
             return (
               <Pressable key={k} onPress={() => setTab(k)} style={{ flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 16, backgroundColor: on ? t.accent : 'transparent' }}>

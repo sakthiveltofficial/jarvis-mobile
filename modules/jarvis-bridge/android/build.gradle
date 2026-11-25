@@ -23,4 +23,6 @@ dependencies {
   // Shizuku (Apache-2.0): optional adb-level "power mode" without root.
   implementation "dev.rikka.shizuku:api:13.1.5"
   implementation "dev.rikka.shizuku:provider:13.1.5"
+  // ARCore (Google Play Services for AR) for the AR tab. "optional" in the manifest: phones without it still install.
+  implementation "com.google.ar:core:1.47.0"
 }
