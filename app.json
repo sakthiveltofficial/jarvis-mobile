@@ -2,7 +2,7 @@
   "expo": {
     "name": "Jarvis",
     "slug": "jarvis-mobile",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "jarvis",
@@ -28,7 +28,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Jarvis uses the camera only to scan the pairing code shown on your computer.",
+          "cameraPermission": "Jarvis uses the camera to scan the pairing code and, in the AR tab, to show you and your PC what you point it at.",
           "recordAudioAndroid": false
         }
       ],

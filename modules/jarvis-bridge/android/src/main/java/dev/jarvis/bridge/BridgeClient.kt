@@ -63,6 +63,8 @@ class BridgeClient(private val ctx: Context, private val tools: PhoneTools) {
   private var offer: PairOffer? = null
   private var pairCallback: ((Boolean, String) -> Unit)? = null
   private var currentHost = ""
+  private val requests = java.util.concurrent.ConcurrentHashMap<String, (JSONObject) -> Unit>()
+  private val timeouts = Handler(Looper.getMainLooper())   // separate: reconnect() clears `main`
 
   private val netCb = object : ConnectivityManager.NetworkCallback() {
     override fun onAvailable(network: Network) {
@@ -88,6 +90,7 @@ class BridgeClient(private val ctx: Context, private val tools: PhoneTools) {
 
   fun stop() {
     stopped = true
+    failRequests("Disconnected from your PC.")
     main.removeCallbacksAndMessages(null)
     try {
       (ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager).unregisterNetworkCallback(netCb)
@@ -200,6 +203,7 @@ class BridgeClient(private val ctx: Context, private val tools: PhoneTools) {
   }
 
   private fun dropped(why: String) {
+    failRequests("Lost the connection to your PC.")
     val wasAuthed = authed
     authed = false
     ws = null
@@ -297,6 +301,7 @@ class BridgeClient(private val ctx: Context, private val tools: PhoneTools) {
       "tts" -> AudioOut.enqueue(ctx, m.getString("wav"))
       "stop_audio" -> AudioOut.stop()
       "call" -> runCall(m)
+      "resp" -> requests.remove(m.optString("id"))?.invoke(m)
       "hosts" -> m.optJSONArray("hosts")?.let { a -> Prefs.updateHosts(ctx, (0 until a.length()).map { a.getString(it) }) }
       "revoked" -> {
         Prefs.clearPairing(ctx)
@@ -322,6 +327,28 @@ class BridgeClient(private val ctx: Context, private val tools: PhoneTools) {
       if (r.data != null) out.put("data", r.data)
       send(out)
     }
+  }
+
+  /**
+   * Phone -> PC request (AR camera features). cb gets {"ok", "data"} or {"ok": false, "error"}; it is called once,
+   * also on timeout or when the link is down.
+   */
+  fun request(op: String, args: JSONObject, timeoutMs: Long, cb: (JSONObject) -> Unit) {
+    val id = java.util.UUID.randomUUID().toString().substring(0, 10)
+    requests[id] = cb
+    if (!send(JSONObject().put("t", "req").put("id", id).put("op", op).put("args", args))) {
+      requests.remove(id)
+      cb(JSONObject().put("ok", false).put("error", "Not connected to your PC."))
+      return
+    }
+    timeouts.postDelayed({
+      requests.remove(id)?.invoke(JSONObject().put("ok", false).put("error", "Your PC didn't answer in time."))
+    }, timeoutMs)
+  }
+
+  private fun failRequests(why: String) {
+    val pending = requests.keys.toList()
+    for (k in pending) requests.remove(k)?.invoke(JSONObject().put("ok", false).put("error", why))
   }
 
   @Synchronized

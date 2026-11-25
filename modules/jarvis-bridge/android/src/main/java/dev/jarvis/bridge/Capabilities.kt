@@ -31,6 +31,7 @@ object Capabilities {
       .put("notifications", NotificationManagerCompat.getEnabledListenerPackages(ctx).contains(ctx.packageName))
       .put("postNotifications", Build.VERSION.SDK_INT < 33 || has(ctx, Manifest.permission.POST_NOTIFICATIONS))
       .put("microphone", has(ctx, Manifest.permission.RECORD_AUDIO))
+      .put("camera", has(ctx, Manifest.permission.CAMERA))
       .put("sms", has(ctx, Manifest.permission.SEND_SMS, Manifest.permission.READ_SMS))
       .put("calls", has(ctx, Manifest.permission.CALL_PHONE, Manifest.permission.READ_CALL_LOG) &&
         (Build.VERSION.SDK_INT < 28 || has(ctx, Manifest.permission.ANSWER_PHONE_CALLS)))

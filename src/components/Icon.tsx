@@ -40,6 +40,35 @@ const paths: Record<string, (c: string) => React.ReactNode> = {
   arrow: (c) => <Path d="M7 17L17 7M9 7h8v8" stroke={c} />,
   speaker: (c) => <Path d="M4 9v6h4l5 4V5L8 9H4zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" stroke={c} />,
   power: (c) => <Path d="M12 3v8M6.3 6.3a8 8 0 1 0 11.4 0" stroke={c} />,
+  orb: (c) => (
+    <>
+      <Circle cx={12} cy={12} r={8} stroke={c} />
+      <Path d="M4 12c0-2 3.6-3.5 8-3.5s8 1.5 8 3.5M12 4c-2 0-3.5 3.6-3.5 8s1.5 8 3.5 8" stroke={c} />
+      <Circle cx={12} cy={12} r={1.2} stroke={c} />
+    </>
+  ),
+  ar: (c) => <Path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3zM12 12l8-4.5M12 12v9M12 12L4 7.5" stroke={c} />,
+  eye: (c) => (
+    <>
+      <Path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" stroke={c} />
+      <Circle cx={12} cy={12} r={3} stroke={c} />
+    </>
+  ),
+  bulb: (c) => <Path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" stroke={c} />,
+  pin: (c) => (
+    <>
+      <Path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z" stroke={c} />
+      <Circle cx={12} cy={10} r={2.3} stroke={c} />
+    </>
+  ),
+  search: (c) => (
+    <>
+      <Circle cx={11} cy={11} r={6.5} stroke={c} />
+      <Path d="M20 20l-4.2-4.2" stroke={c} />
+    </>
+  ),
+  plus: (c) => <Path d="M12 5v14M5 12h14" stroke={c} />,
+  minus: (c) => <Path d="M5 12h14" stroke={c} />,
 };
 
 export function Icon({ name, size = 18, color = '#17191a', width = 1.5 }: { name: keyof typeof paths | string; size?: number; color?: string; width?: number }) {

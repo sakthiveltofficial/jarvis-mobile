@@ -16,6 +16,8 @@ import org.json.JSONObject
 class JarvisBridgeModule : Module() {
   private val ctx: Context get() = appContext.reactContext ?: throw IllegalStateException("No context")
   private var capturePromise: Promise? = null
+  /** Last push-to-talk recording kept for an AR "look" (sent with a camera frame instead of as plain chat). */
+  @Volatile private var keptWav: ByteArray? = null
   private val CAPTURE_REQ = 4713
 
   override fun definition() = ModuleDefinition {
@@ -117,9 +119,41 @@ class JarvisBridgeModule : Module() {
       send(JSONObject().put("t", "audio").put("wav", Crypto.b64(wav)).put("speak", Prefs.bool(ctx, "speak_on_phone", true)))
     }
 
+    Function("stopRecordingKeep") {
+      keptWav = VoiceRecorder.stop()
+      keptWav != null
+    }
+
+    /**
+     * Phone -> PC request for the AR features. args may name {"jpegRef": captureId} (a frame from the AR view) and
+     * {"wavRef": true} (the kept recording); they are filled in here so big blobs never cross into JS.
+     * Resolves with the PC's JSON reply as a string: {"ok", "data"} or {"ok": false, "error"}.
+     */
+    AsyncFunction("request") { op: String, argsJson: String, timeoutMs: Int, promise: Promise ->
+      val args = try { JSONObject(argsJson) } catch (_: Exception) { JSONObject() }
+      args.optString("jpegRef").takeIf { it.isNotEmpty() }?.let { ref ->
+        val jpeg = dev.jarvis.bridge.ar.ArCaptures.get(ref)
+        if (jpeg == null) {
+          promise.resolve(JSONObject().put("ok", false).put("error", "That camera frame expired.").toString()); return@AsyncFunction
+        }
+        args.remove("jpegRef"); args.put("jpeg", Crypto.b64(jpeg))
+      }
+      if (args.optBoolean("wavRef")) {
+        args.remove("wavRef")
+        keptWav?.let { args.put("wav", Crypto.b64(it)) }
+        keptWav = null
+      }
+      val client = BridgeService.instance?.client
+      if (client == null || !client.connected) {
+        promise.resolve(JSONObject().put("ok", false).put("error", "Not connected to your PC.").toString()); return@AsyncFunction
+      }
+      client.request(op, args, timeoutMs.toLong().coerceIn(2000, 180_000)) { promise.resolve(it.toString()) }
+    }
+
     AsyncFunction("requestPermissions") { group: String, promise: Promise ->
       val perms = when (group) {
         "microphone" -> listOf(Manifest.permission.RECORD_AUDIO)
+        "camera" -> listOf(Manifest.permission.CAMERA)
         "sms" -> listOf(Manifest.permission.SEND_SMS, Manifest.permission.READ_SMS)
         "calls" -> listOfNotNull(Manifest.permission.CALL_PHONE, Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_PHONE_STATE,
           if (Build.VERSION.SDK_INT >= 28) Manifest.permission.ANSWER_PHONE_CALLS else null)
