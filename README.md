@@ -8,6 +8,26 @@ The phone companion for [Jarvis](https://github.com/sakthiveltofficial/jarvis), 
 - **Private by design**: the phone talks straight to your PC over your Wi-Fi or Tailscale. No cloud relay.
   Every message is end-to-end encrypted (AES-256-GCM) with a key created when you pair.
 
+## Jarvis AR (v0.2.0)
+
+The **AR** tab uses Google ARCore (Google Play Services for AR; the app offers to install it). It needs desktop
+Jarvis v0.9.0 or newer, and a model with vision on the PC for the camera features.
+
+- **Orb**: the desktop's particle orb floats in your room with the same mood colours, ripples as Jarvis talks and
+  leans in while you hold the mic. Tap a surface to move it. Replies appear as a caption next to it.
+- **Look**: point at anything (a device, a document, a plant, an error on a screen) and tap the eye or hold the mic
+  to ask. Jarvis sees the photo and explains it or acts on it.
+- **Home**: point at a light, AC or TV and tap **Scan**. Controls float on the devices it recognises from Home
+  Assistant (on/off, brightness, temperature and modes, volume). **Keep here** makes a control reappear next time.
+- **Notes**: tap a spot to pin a note, with an optional reminder for when you come back. A photo of the spot is saved
+  on the phone as an ARCore Augmented Image, so ARCore can find the spot again without any cloud service. Spots with
+  more texture (a fridge with magnets, a cluttered desk) are found more reliably.
+- **Find**: with **Remembering** on, the phone glances every 20 s and your PC notes which objects are where. Type
+  "keys" in Find, or ask Jarvis "where did I leave my keys?", to get the last sighting with a photo; if it was seen
+  in this AR session it's marked in view.
+
+Camera frames go only to your PC over the encrypted link.
+
 ## Install
 
 1. Download the latest `Jarvis-x.y.z.apk` from [Releases](../../releases) on your phone and open it.
