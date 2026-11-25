@@ -102,7 +102,7 @@ class BridgeService : Service() {
   }
 
   private fun build(): Notification {
-    val launch = packageManager.getLaunchIntentForPackage(packageName)
+    val launch = packageManager.getLaunchIntentForPackage(packageName) ?: Intent()
     val pi = PendingIntent.getActivity(this, 0, launch, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     val stop = PendingIntent.getService(
       this, 1, Intent(this, BridgeService::class.java).setAction(ACTION_STOP),

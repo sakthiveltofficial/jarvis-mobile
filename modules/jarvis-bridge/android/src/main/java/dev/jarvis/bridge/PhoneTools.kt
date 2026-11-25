@@ -414,6 +414,7 @@ class PhoneTools(private val ctx: Context) {
   }
 
   @SuppressLint("MissingPermission")
+  @Suppress("DEPRECATION")
   private fun call(a: JSONObject): ToolResult {
     when (a.optString("op", "dial")) {
       "dial" -> {
@@ -426,11 +427,12 @@ class PhoneTools(private val ctx: Context) {
         if (Build.VERSION.SDK_INT < 28) return ToolResult.err("Needs Android 9 or newer.")
         need(Manifest.permission.ANSWER_PHONE_CALLS, "answering and ending calls")?.let { return it }
         val tm = ctx.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
-        return if (a.optString("op") == "end") {
-          @Suppress("DEPRECATION") if (tm.endCall()) ToolResult.ok("Hung up.") else ToolResult.err("No call to end.")
-        } else {
-          @Suppress("DEPRECATION") tm.acceptRingingCall(); ToolResult.ok("Answered.")
+        if (a.optString("op") == "end") {
+          val ended = tm.endCall()
+          return if (ended) ToolResult.ok("Hung up.") else ToolResult.err("No call to end.")
         }
+        tm.acceptRingingCall()
+        return ToolResult.ok("Answered.")
       }
       "log" -> {
         need(Manifest.permission.READ_CALL_LOG, "the call log")?.let { return it }
